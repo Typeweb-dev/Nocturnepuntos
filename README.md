@@ -30,6 +30,9 @@ Copia `.env.example` a `.env.local` en desarrollo. En Vercel, crea estas variabl
 ```env
 NEXT_PUBLIC_APP_URL="https://tu-dominio.vercel.app"
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/postgres?sslmode=require"
+# Si Vercel/Supabase ya te crea otra variable, el codigo tambien acepta:
+# POSTGRES_PRISMA_URL, POSTGRES_URL, POSTGRES_URL_NON_POOLING,
+# DATABASE_URL_UNPOOLED o SUPABASE_DATABASE_URL.
 QR_SECRET="secreto-largo-para-firmar-y-cifrar-los-qr"
 AUTH_SECRET="secreto-largo-para-sesiones"
 DEFAULT_POINTS_PER_QR=75
@@ -55,7 +58,7 @@ Abre `http://localhost:3000`.
 ## Base de datos en produccion
 
 1. Crea un proyecto PostgreSQL en Supabase.
-2. Copia la connection string en `DATABASE_URL`.
+2. Copia la connection string en `DATABASE_URL`. Si tu proveedor ya creo `POSTGRES_PRISMA_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, `DATABASE_URL_UNPOOLED` o `SUPABASE_DATABASE_URL`, tambien funciona.
 3. Usa una URL compatible con migraciones Prisma. Para Supabase, prefiere la conexion directa o pooler en modo session.
 4. Aplica migraciones:
 
@@ -80,7 +83,7 @@ pnpm install --frozen-lockfile
 pnpm run vercel-build
 ```
 
-`vercel-build` aplica migraciones con `prisma migrate deploy` y luego ejecuta `next build`.
+`vercel-build` ejecuta `next build`. Las migraciones se aplican aparte con `pnpm run prisma:deploy` para que el deploy no falle si Vercel no tiene la base disponible durante el build.
 
 Pasos:
 

@@ -1,11 +1,12 @@
 import { config as loadEnv } from 'dotenv'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { getAppUrl, getDatabasePoolMax, getDatabaseUrl } from '../lib/env'
 
 loadEnv({ path: '.env.local', override: false })
 loadEnv({ path: '.env', override: false })
 
-type RequiredVariable = 'DATABASE_URL' | 'NEXT_PUBLIC_APP_URL' | 'QR_SECRET' | 'AUTH_SECRET'
+type RequiredVariable = 'QR_SECRET' | 'AUTH_SECRET'
 
 function fail(message: string): never {
   console.error(`Production check failed: ${message}`)
@@ -40,7 +41,7 @@ function validateSecrets() {
 }
 
 function validateAppUrl() {
-  const appUrl = readRequired('NEXT_PUBLIC_APP_URL')
+  const appUrl = getAppUrl()
 
   try {
     const parsed = new URL(appUrl)
@@ -54,9 +55,15 @@ function validateAppUrl() {
 }
 
 async function validateDatabase() {
-  const databaseUrl = readRequired('DATABASE_URL')
+  const databaseUrl = getDatabaseUrl()
   const prisma = new PrismaClient({
-    adapter: new PrismaPg(databaseUrl),
+    adapter: new PrismaPg({
+      connectionString: databaseUrl,
+      max: getDatabasePoolMax(),
+      idleTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 10_000,
+      allowExitOnIdle: true,
+    }),
   })
 
   try {

@@ -60,7 +60,7 @@ export async function listRewardQrs(params?: { status?: RewardQrStatus }) {
   })
 }
 
-export async function generateRewardQr(input: unknown, actor = 'admin') {
+export async function generateRewardQr(input: unknown, actor = 'admin', baseUrl?: string) {
   const withDefaults = {
     points: getDefaultPointsPerQr(),
     expiresInDays: getDefaultQrExpirationDays(),
@@ -100,7 +100,7 @@ export async function generateRewardQr(input: unknown, actor = 'admin') {
     return {
       qr,
       token: tokenData.token,
-      claimUrl: buildClaimUrl(tokenData.token),
+      claimUrl: buildClaimUrl(tokenData.token, baseUrl),
       expiresAt,
       points: qr.points,
     }

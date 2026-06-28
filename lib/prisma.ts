@@ -1,17 +1,14 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { getDatabasePoolMax, getDatabaseUrl } from '@/lib/env'
 
-function getDatabaseUrl() {
-  const databaseUrl = process.env.DATABASE_URL
-
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL is required to connect Nocturne Points to the database.')
-  }
-
-  return databaseUrl
-}
-
-const adapter = new PrismaPg(getDatabaseUrl())
+const adapter = new PrismaPg({
+  connectionString: getDatabaseUrl(),
+  max: getDatabasePoolMax(),
+  idleTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 10_000,
+  allowExitOnIdle: true,
+})
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient

@@ -12,8 +12,8 @@ export function createRewardQrToken() {
   }
 }
 
-export function buildClaimUrl(token: string) {
-  return `${getAppUrl()}/qr/${encodeURIComponent(token)}`
+export function buildClaimUrl(token: string, baseUrl = getAppUrl()) {
+  return `${baseUrl.replace(/\/$/, '')}/qr/${encodeURIComponent(token)}`
 }
 
 export async function renderQrPngBuffer(url: string) {

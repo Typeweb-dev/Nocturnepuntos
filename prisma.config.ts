@@ -1,17 +1,12 @@
 import { config as loadEnv } from 'dotenv'
 import { defineConfig } from 'prisma/config'
+import { getDatabaseUrl } from './lib/env'
 
 loadEnv({ path: '.env.local', override: false })
 loadEnv({ path: '.env', override: false })
 
 const isGenerateCommand = process.argv.includes('generate')
-const databaseUrl =
-  process.env.DATABASE_URL ??
-  (isGenerateCommand ? 'postgresql://prisma:prisma@localhost:5432/nocturne_points' : undefined)
-
-if (!databaseUrl) {
-  throw new Error('DATABASE_URL is required for Prisma commands that connect to the database.')
-}
+const databaseUrl = getDatabaseUrl({ allowGenerateFallback: isGenerateCommand })
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',

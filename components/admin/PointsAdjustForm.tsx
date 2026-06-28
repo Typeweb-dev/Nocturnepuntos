@@ -7,11 +7,13 @@ import type React from 'react'
 export function PointsAdjustForm({ customerId }: { customerId: string }) {
   const router = useRouter()
   const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState<'error' | 'success'>('success')
   const [isPending, startTransition] = useTransition()
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setMessage('')
+    setMessageType('success')
     const formElement = event.currentTarget
     const form = new FormData(formElement)
 
@@ -29,11 +31,14 @@ export function PointsAdjustForm({ customerId }: { customerId: string }) {
       const result = await response.json()
 
       if (!response.ok || !result.success) {
+        setMessageType('error')
         setMessage(result.message ?? 'No pudimos ajustar puntos.')
         return
       }
 
       formElement.reset()
+      setMessageType('success')
+      setMessage('Ajuste registrado correctamente.')
       router.refresh()
     })
   }
@@ -48,8 +53,12 @@ export function PointsAdjustForm({ customerId }: { customerId: string }) {
           <option value="EXPIRE">Expiracion</option>
         </select>
       </div>
-      <input name="description" required placeholder="Motivo del ajuste" className={inputClass} />
-      {message && <p className="text-sm text-red-300">{message}</p>}
+      <input name="description" placeholder="Motivo del ajuste (opcional)" className={inputClass} />
+      {message && (
+        <p className={`text-sm ${messageType === 'error' ? 'text-red-300' : 'text-emerald-300'}`}>
+          {message}
+        </p>
+      )}
       <button
         disabled={isPending}
         className="h-10 w-full rounded-lg bg-nocturne-accent px-4 text-sm font-semibold text-nocturne-black transition-smooth hover:bg-nocturne-accent-light disabled:opacity-60"

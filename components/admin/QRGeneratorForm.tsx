@@ -49,7 +49,10 @@ export function QRGeneratorForm({
           expiresInDays: form.get('expiresInDays'),
         }),
       })
-      const result = await response.json()
+      const result = await response.json().catch(() => ({
+        success: false,
+        message: 'No pudimos generar el QR. Revisa las variables DATABASE_URL, QR_SECRET y AUTH_SECRET en Vercel.',
+      }))
 
       if (!response.ok || !result.success) {
         setMessage(result.message ?? 'No pudimos generar el QR.')

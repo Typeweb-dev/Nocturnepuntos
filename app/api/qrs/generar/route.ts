@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { requireAdminSessionFromRequest } from '@/lib/auth'
+import { getRequestOrigin } from '@/lib/env'
 import { jsonError, jsonOk, readJson, validationError } from '@/lib/http'
 import { generateRewardQr } from '@/services/qr.service'
 
@@ -8,7 +9,7 @@ export const runtime = 'nodejs'
 export async function POST(request: NextRequest) {
   try {
     const session = await requireAdminSessionFromRequest(request)
-    const result = await generateRewardQr(await readJson(request), session.email)
+    const result = await generateRewardQr(await readJson(request), session.email, getRequestOrigin(request))
 
     return jsonOk(
       {

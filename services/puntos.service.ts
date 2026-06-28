@@ -29,7 +29,7 @@ export async function adjustPoints(input: unknown, actor = 'admin') {
         type: data.type as PointTransactionType,
         points: data.points,
         balanceAfter: nextBalance,
-        description: data.description,
+        description: data.description ?? getDefaultDescription(data.type, data.points),
       },
     })
 
@@ -44,4 +44,16 @@ export async function adjustPoints(input: unknown, actor = 'admin') {
 
     return { customer: updatedCustomer, transaction }
   })
+}
+
+function getDefaultDescription(type: PointTransactionType | string, points: number) {
+  if (type === 'CANCEL') {
+    return `Devolucion manual de ${Math.abs(points)} puntos.`
+  }
+
+  if (type === 'EXPIRE') {
+    return `Expiracion manual de ${Math.abs(points)} puntos.`
+  }
+
+  return `Ajuste manual de ${points > 0 ? '+' : ''}${points} puntos.`
 }

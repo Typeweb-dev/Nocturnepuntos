@@ -3,17 +3,19 @@ import { config as loadEnv } from 'dotenv'
 import bcrypt from 'bcryptjs'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { getDatabasePoolMax, getDatabaseUrl } from '../lib/env'
 
 loadEnv({ path: '.env.local', override: false })
 loadEnv({ path: '.env', override: false })
 
-const databaseUrl = process.env.DATABASE_URL
-
-if (!databaseUrl) {
-  throw new Error('DATABASE_URL is required to seed the database.')
-}
-
-const adapter = new PrismaPg(databaseUrl)
+const databaseUrl = getDatabaseUrl()
+const adapter = new PrismaPg({
+  connectionString: databaseUrl,
+  max: getDatabasePoolMax(),
+  idleTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 10_000,
+  allowExitOnIdle: true,
+})
 const prisma = new PrismaClient({ adapter })
 
 const isProduction = process.env.NODE_ENV === 'production'

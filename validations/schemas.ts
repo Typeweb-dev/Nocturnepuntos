@@ -35,7 +35,7 @@ export const pointsAdjustSchema = z.object({
   customerId: z.string().min(1, 'Selecciona un cliente.'),
   points: z.coerce.number().int().refine((value) => value !== 0, 'El ajuste no puede ser cero.'),
   type: z.enum(['ADJUST', 'CANCEL', 'EXPIRE']).default('ADJUST'),
-  description: z.string().trim().min(4, 'Agrega una descripcion.'),
+  description: optionalText,
 })
 
 export const redemptionCreateSchema = z.object({
