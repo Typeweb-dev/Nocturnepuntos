@@ -1,5 +1,11 @@
+packages:
+  - "."
+
+overrides:
+  hono: 4.12.25
+
 allowBuilds:
-  '@prisma/engines': true
+  "@prisma/engines": true
   esbuild: true
   msw: true
   prisma: true
