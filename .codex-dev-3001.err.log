@@ -1,0 +1,32 @@
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://C:/Users/kenne/OneDrive/Desktop/Nocturne points/.next/dev/static/chunks/node_modules_next_dist_115brz8._.js:2477:13)
+[browser] Uncaught TypeError: Cannot read properties of null (reading 'reset')
+    at <unknown> (file://C:/Users/kenne/OneDrive/Desktop/Nocturne points/.next/dev/static/chunks/_0-ukb06._.js:320:33)
+    at CustomerDetailPage (app\admin\(panel)\clientes\[id]\page.tsx:106:13)
+  104 |           <Card>
+  105 |             <h2 className="mb-5 text-lg font-semibold text-white">Ajuste manual</h2>
+> 106 |             <PointsAdjustForm customerId={customer.id} />
+      |             ^
+  107 |           </Card>
+  108 |
+  109 |           <Card>
+[browser] Uncaught TypeError: Cannot read properties of null (reading 'reset')
+    at <unknown> (file://C:/Users/kenne/OneDrive/Desktop/Nocturne points/.next/dev/static/chunks/_0-ukb06._.js:320:33)
+    at CustomerDetailPage (app\admin\(panel)\clientes\[id]\page.tsx:106:13)
+  104 |           <Card>
+  105 |             <h2 className="mb-5 text-lg font-semibold text-white">Ajuste manual</h2>
+> 106 |             <PointsAdjustForm customerId={customer.id} />
+      |             ^
+  107 |           </Card>
+  108 |
+  109 |           <Card>
+[browser] Uncaught TypeError: Cannot read properties of null (reading 'reset')
+    at <unknown> (file://C:/Users/kenne/OneDrive/Desktop/Nocturne points/.next/dev/static/chunks/_0-ukb06._.js:320:33)
+    at CustomerDetailPage (app\admin\(panel)\clientes\[id]\page.tsx:106:13)
+  104 |           <Card>
+  105 |             <h2 className="mb-5 text-lg font-semibold text-white">Ajuste manual</h2>
+> 106 |             <PointsAdjustForm customerId={customer.id} />
+      |             ^
+  107 |           </Card>
+  108 |
+  109 |           <Card>
+⚠ Fast Refresh had to perform a full reload due to a runtime error.

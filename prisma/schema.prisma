@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum OrderStatus {
+  DRAFT
+  PAID
+  FULFILLED
+  CANCELLED
+}
+
+enum RewardQrStatus {
+  PENDING
+  CLAIMED
+  EXPIRED
+  REVOKED
+}
+
+enum PointTransactionType {
+  EARN
+  REDEEM
+  ADJUST
+  CANCEL
+  EXPIRE
+}
+
+enum RedemptionStatus {
+  PENDING
+  APPROVED
+  COMPLETED
+  CANCELLED
+}
+
+enum AdminRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+model Customer {
+  id             String             @id @default(cuid())
+  code           String             @unique
+  name           String
+  email          String?
+  phone          String?
+  pointsBalance  Int                @default(0)
+  status         CustomerStatus     @default(ACTIVE)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  orders         Order[]
+  rewardQrs      RewardQr[]
+  transactions   PointTransaction[]
+  redemptions    Redemption[]
+
+  @@index([name])
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Order {
+  id           String             @id @default(cuid())
+  orderNumber  String             @unique
+  customerId   String
+  total        Decimal?           @db.Decimal(10, 2)
+  status       OrderStatus        @default(PAID)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  customer     Customer           @relation(fields: [customerId], references: [id])
+  rewardQrs    RewardQr[]
+  transactions PointTransaction[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RewardQr {
+  id             String              @id @default(cuid())
+  tokenHash      String              @unique
+  tokenCiphertext String?
+  customerId     String
+  orderId        String?
+  points         Int                 @default(75)
+  status         RewardQrStatus      @default(PENDING)
+  expiresAt      DateTime
+  claimedAt      DateTime?
+  scanCount      Int                 @default(0)
+  lastScannedAt  DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  customer       Customer            @relation(fields: [customerId], references: [id])
+  order          Order?              @relation(fields: [orderId], references: [id])
+  transaction    PointTransaction?
+
+  @@index([customerId])
+  @@index([orderId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([createdAt])
+}
+
+model PointTransaction {
+  id            String                 @id @default(cuid())
+  customerId    String
+  orderId       String?
+  rewardQrId    String?                @unique
+  type          PointTransactionType
+  points        Int
+  balanceAfter  Int
+  description   String
+  createdAt     DateTime               @default(now())
+  customer      Customer               @relation(fields: [customerId], references: [id])
+  order         Order?                 @relation(fields: [orderId], references: [id])
+  rewardQr      RewardQr?              @relation(fields: [rewardQrId], references: [id])
+
+  @@index([customerId])
+  @@index([orderId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Redemption {
+  id          String            @id @default(cuid())
+  customerId  String
+  pointsUsed  Int
+  rewardName  String
+  status      RedemptionStatus  @default(PENDING)
+  createdAt   DateTime          @default(now())
+  completedAt DateTime?
+  customer    Customer          @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model RewardRule {
+  id              String    @id @default(cuid())
+  name            String
+  pointsRequired  Int
+  rewardText      String
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([active])
+  @@index([pointsRequired])
+}
+
+model AdminUser {
+  id            String     @id @default(cuid())
+  name          String
+  email         String     @unique
+  passwordHash  String
+  role          AdminRole  @default(ADMIN)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([role])
+}
+
+model AuditLog {
+  id           String    @id @default(cuid())
+  action       String
+  entity       String
+  entityId     String?
+  description  String
+  createdAt    DateTime  @default(now())
+
+  @@index([entity])
+  @@index([entityId])
+  @@index([createdAt])
+}
