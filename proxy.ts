@@ -16,6 +16,13 @@ export async function proxy(request: NextRequest) {
   const supabaseResponse = await updateSession(request)
   const { pathname } = request.nextUrl
 
+  if (isUnsafeMethod(request.method) && !isSameOriginRequest(request)) {
+    return NextResponse.json(
+      { success: false, code: 'INVALID_ORIGIN', message: 'Origen no permitido.' },
+      { status: 403 },
+    )
+  }
+
   if (pathname.startsWith('/api/qrs/canjear')) {
     return supabaseResponse
   }
@@ -49,4 +56,26 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: ['/admin/:path*', '/api/:path*'],
+}
+
+function isUnsafeMethod(method: string) {
+  return method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE'
+}
+
+function isSameOriginRequest(request: NextRequest) {
+  const origin = request.headers.get('origin')
+
+  if (!origin) {
+    return process.env.NODE_ENV !== 'production'
+  }
+
+  try {
+    const originUrl = new URL(origin)
+    const forwardedHost = request.headers.get('x-forwarded-host')
+    const host = forwardedHost ?? request.headers.get('host')
+
+    return Boolean(host && originUrl.host === host)
+  } catch {
+    return false
+  }
 }

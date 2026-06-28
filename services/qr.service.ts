@@ -262,7 +262,7 @@ export async function claimRewardQr(input: unknown) {
   }
 }
 
-export async function getRewardQrPng(id: string) {
+export async function getRewardQrPng(id: string, baseUrl?: string) {
   const qr = await prisma.rewardQr.findUnique({ where: { id } })
 
   if (!qr?.tokenCiphertext) {
@@ -270,7 +270,7 @@ export async function getRewardQrPng(id: string) {
   }
 
   const token = decryptQrToken(qr.tokenCiphertext)
-  return renderQrPngBuffer(buildClaimUrl(token))
+  return renderQrPngBuffer(buildClaimUrl(token, baseUrl))
 }
 
 export async function revokeRewardQr(id: string, actor = 'admin') {
