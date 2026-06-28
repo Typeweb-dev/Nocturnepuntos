@@ -1,21 +1,35 @@
 import { NextRequest } from 'next/server'
-import { getAdminSessionFromRequest } from '@/lib/auth'
+import { requireAdminSessionFromRequest } from '@/lib/auth'
 import { jsonError, jsonOk, readJson, validationError } from '@/lib/http'
 import { createRedemption, listRedemptions } from '@/services/canjes.service'
 
 export const runtime = 'nodejs'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  try {
+    await requireAdminSessionFromRequest(request)
+  } catch (error) {
+    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+      return jsonError('UNAUTHORIZED', 'Inicia sesion para continuar.', 401)
+    }
+
+    return validationError(error)
+  }
+
   const redemptions = await listRedemptions()
   return jsonOk({ success: true, redemptions })
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getAdminSessionFromRequest(request)
-    const redemption = await createRedemption(await readJson(request), session?.email ?? 'admin')
+    const session = await requireAdminSessionFromRequest(request)
+    const redemption = await createRedemption(await readJson(request), session.email)
     return jsonOk({ success: true, redemption }, { status: 201 })
   } catch (error) {
+    if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+      return jsonError('UNAUTHORIZED', 'Inicia sesion para continuar.', 401)
+    }
+
     if (error instanceof Error && error.message === 'CUSTOMER_NOT_FOUND') {
       return jsonError('CUSTOMER_NOT_FOUND', 'Cliente no encontrado.', 404)
     }

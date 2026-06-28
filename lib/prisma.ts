@@ -1,9 +1,17 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 
-const connectionString =
-  process.env.DATABASE_URL ?? 'postgresql://user:password@localhost:5432/nocturne_points'
-const adapter = new PrismaPg(connectionString)
+function getDatabaseUrl() {
+  const databaseUrl = process.env.DATABASE_URL
+
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL is required to connect Nocturne Points to the database.')
+  }
+
+  return databaseUrl
+}
+
+const adapter = new PrismaPg(getDatabaseUrl())
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient

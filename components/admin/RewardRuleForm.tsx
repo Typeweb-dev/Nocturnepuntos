@@ -48,15 +48,15 @@ export function RewardRuleForm({ rule }: { rule: Rule }) {
     <form onSubmit={submit} className="grid gap-4">
       <label className="block">
         <span className="text-sm font-medium text-zinc-300">Nombre</span>
-        <input name="name" defaultValue={rule?.name ?? 'Camisa gratis'} required className={inputClass} />
+        <input name="name" defaultValue={rule?.name ?? 'Productos Nocturne'} required className={inputClass} />
       </label>
       <label className="block">
         <span className="text-sm font-medium text-zinc-300">Puntos requeridos</span>
-        <input name="pointsRequired" type="number" min="1" defaultValue={rule?.pointsRequired ?? 100} required className={inputClass} />
+        <input name="pointsRequired" type="number" min="1" defaultValue={rule?.pointsRequired ?? 180} required className={inputClass} />
       </label>
       <label className="block">
         <span className="text-sm font-medium text-zinc-300">Texto visible</span>
-        <input name="rewardText" defaultValue={rule?.rewardText ?? '100 puntos = 1 camisa gratis'} required className={inputClass} />
+        <input name="rewardText" defaultValue={rule?.rewardText ?? '180 puntos o mas = canje por productos seleccionados'} required className={inputClass} />
       </label>
       {message && <p className="text-sm text-zinc-300">{message}</p>}
       <button

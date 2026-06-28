@@ -7,10 +7,29 @@ import { PrismaPg } from '@prisma/adapter-pg'
 loadEnv({ path: '.env.local', override: false })
 loadEnv({ path: '.env', override: false })
 
-const adapter = new PrismaPg(process.env.DATABASE_URL ?? 'postgresql://user:password@localhost:5432/nocturne_points')
+const databaseUrl = process.env.DATABASE_URL
+
+if (!databaseUrl) {
+  throw new Error('DATABASE_URL is required to seed the database.')
+}
+
+const adapter = new PrismaPg(databaseUrl)
 const prisma = new PrismaClient({ adapter })
 
+const isProduction = process.env.NODE_ENV === 'production'
+const isRemoteDatabase = /(supabase|pooler|aws-|neon|railway|render|vercel)/i.test(databaseUrl)
+const shouldSeedSampleData = process.env.SEED_SAMPLE_DATA === 'true'
 const qrSecret = process.env.QR_SECRET ?? 'nocturne-local-development-secret'
+
+function requiredEnv(name: string, fallback?: string) {
+  const value = process.env[name] ?? fallback
+
+  if (!value || (isProduction && value === fallback)) {
+    throw new Error(`${name} is required for production seed.`)
+  }
+
+  return value
+}
 
 function generateSecureToken(bytes = 32) {
   return randomBytes(bytes).toString('base64url')
@@ -30,37 +49,62 @@ function encryptQrToken(token: string) {
   return [iv, authTag, ciphertext].map((part) => part.toString('base64url')).join('.')
 }
 
-async function main() {
-  await prisma.auditLog.deleteMany()
-  await prisma.pointTransaction.deleteMany()
-  await prisma.redemption.deleteMany()
-  await prisma.rewardQr.deleteMany()
-  await prisma.order.deleteMany()
-  await prisma.rewardRule.deleteMany()
-  await prisma.customer.deleteMany()
-  await prisma.adminUser.deleteMany()
+async function seedAdmin() {
+  const adminEmail = requiredEnv('ADMIN_EMAIL', 'admin@nocturne.test').toLowerCase()
+  const adminPassword = requiredEnv('ADMIN_PASSWORD', 'admin123')
+  const strictCredentials = isProduction || isRemoteDatabase
 
-  const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@nocturne.test'
-  const adminPassword = process.env.ADMIN_PASSWORD ?? 'admin123'
+  if (strictCredentials && (adminEmail === 'admin@nocturne.test' || adminPassword === 'admin123')) {
+    throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD must not use demo values for a remote database.')
+  }
 
-  await prisma.adminUser.create({
-    data: {
+  if (strictCredentials && adminPassword.length < 10) {
+    throw new Error('ADMIN_PASSWORD must contain at least 10 characters for a remote database.')
+  }
+
+  if (strictCredentials) {
+    await prisma.adminUser.deleteMany({ where: { email: 'admin@nocturne.test' } })
+  }
+
+  await prisma.adminUser.upsert({
+    where: { email: adminEmail },
+    update: {
       name: 'Nocturne Admin',
-      email: adminEmail.toLowerCase(),
+      passwordHash: await bcrypt.hash(adminPassword, 12),
+      role: 'OWNER',
+    },
+    create: {
+      name: 'Nocturne Admin',
+      email: adminEmail,
       passwordHash: await bcrypt.hash(adminPassword, 12),
       role: 'OWNER',
     },
   })
 
-  const rule = await prisma.rewardRule.create({
+  return adminEmail
+}
+
+async function seedDefaultRewardRule() {
+  const activeRule = await prisma.rewardRule.findFirst({
+    where: { active: true },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  if (activeRule) {
+    return activeRule
+  }
+
+  return prisma.rewardRule.create({
     data: {
-      name: 'Camisa gratis',
-      pointsRequired: 100,
-      rewardText: '100 puntos = 1 camisa gratis',
+      name: 'Productos Nocturne',
+      pointsRequired: 180,
+      rewardText: '180 puntos o mas = canje por productos seleccionados',
       active: true,
     },
   })
+}
 
+async function seedSamples() {
   const seedCustomers = [
     ['NCT-001', 'Juan Perez', 90],
     ['NCT-002', 'Bradley David Rodriguez', 120],
@@ -76,80 +120,90 @@ async function main() {
   const customers = []
 
   for (const [code, name, points] of seedCustomers) {
-    const customer = await prisma.customer.create({
-      data: {
-        code,
-        name,
-        email: `${code.toLowerCase()}@nocturne.test`,
-        pointsBalance: points,
-        status: 'ACTIVE',
-      },
-    })
+    const existing = await prisma.customer.findUnique({ where: { code } })
+    const customer =
+      existing ??
+      (await prisma.customer.create({
+        data: {
+          code,
+          name,
+          email: `${code.toLowerCase()}@nocturne.test`,
+          pointsBalance: points,
+          status: 'ACTIVE',
+        },
+      }))
 
-    await prisma.pointTransaction.create({
-      data: {
-        customerId: customer.id,
-        type: 'ADJUST',
-        points,
-        balanceAfter: points,
-        description: 'Balance inicial migrado desde el sistema anterior.',
-      },
-    })
+    if (!existing && points > 0) {
+      await prisma.pointTransaction.create({
+        data: {
+          customerId: customer.id,
+          type: 'ADJUST',
+          points,
+          balanceAfter: points,
+          description: 'Balance inicial de prueba.',
+        },
+      })
+    }
 
     customers.push(customer)
   }
 
-  const orders = []
-
-  for (let index = 0; index < 5; index += 1) {
+  for (let index = 0; index < 3; index += 1) {
     const customer = customers[index]
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: `NOC-${String(index + 1).padStart(4, '0')}`,
+    const orderNumber = `NOC-${String(index + 1).padStart(4, '0')}`
+    const order = await prisma.order.upsert({
+      where: { orderNumber },
+      update: {},
+      create: {
+        orderNumber,
         customerId: customer.id,
         total: 35 + index * 12,
-        status: index === 4 ? 'FULFILLED' : 'PAID',
+        status: 'PAID',
       },
     })
-
-    orders.push(order)
-  }
-
-  for (let index = 0; index < 3; index += 1) {
-    const token = generateSecureToken()
-
-    await prisma.rewardQr.create({
-      data: {
-        tokenHash: hashQrToken(token),
-        tokenCiphertext: encryptQrToken(token),
-        customerId: customers[index].id,
-        orderId: orders[index].id,
-        points: 75,
-        status: 'PENDING',
-        expiresAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-      },
+    const existingQr = await prisma.rewardQr.findFirst({
+      where: { orderId: order.id, status: 'PENDING' },
     })
-  }
 
-  await prisma.redemption.create({
-    data: {
-      customerId: customers[1].id,
-      pointsUsed: rule.pointsRequired,
-      rewardName: rule.name,
-      status: 'PENDING',
-    },
-  })
+    if (!existingQr) {
+      const token = generateSecureToken()
+
+      await prisma.rewardQr.create({
+        data: {
+          tokenHash: hashQrToken(token),
+          tokenCiphertext: encryptQrToken(token),
+          customerId: customer.id,
+          orderId: order.id,
+          points: 75,
+          status: 'PENDING',
+          expiresAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+        },
+      })
+    }
+  }
+}
+
+async function main() {
+  const adminEmail = await seedAdmin()
+  await seedDefaultRewardRule()
+
+  if (shouldSeedSampleData) {
+    await seedSamples()
+  }
 
   await prisma.auditLog.create({
     data: {
       action: 'SEED',
       entity: 'System',
-      description: 'Datos de prueba creados para Nocturne Points.',
+      description: shouldSeedSampleData
+        ? 'Seed seguro ejecutado con datos de prueba.'
+        : 'Seed seguro ejecutado para admin y regla inicial.',
     },
   })
 
   console.log('Seed complete.')
-  console.log(`Admin: ${adminEmail} / ${adminPassword}`)
+  console.log(`Admin: ${adminEmail}`)
+  console.log(`Sample data: ${shouldSeedSampleData ? 'created or updated' : 'skipped'}`)
 }
 
 main()

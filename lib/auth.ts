@@ -36,6 +36,16 @@ export async function getAdminSessionFromRequest(request: NextRequest) {
   return token ? verifySessionToken(token) : null
 }
 
+export async function requireAdminSessionFromRequest(request: NextRequest) {
+  const session = await getAdminSessionFromRequest(request)
+
+  if (!session) {
+    throw new Error('UNAUTHORIZED')
+  }
+
+  return session
+}
+
 export async function createCustomerSessionCookie(session: CustomerSession) {
   const token = await createCustomerSessionToken(session)
 

@@ -10,7 +10,7 @@ export async function listRedemptions() {
   })
 }
 
-export async function listEligibleCustomers(pointsRequired = 100) {
+export async function listEligibleCustomers(pointsRequired = 180) {
   return prisma.customer.findMany({
     where: {
       status: 'ACTIVE',
